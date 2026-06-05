@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <title>Party!</title>
+    <title>Party Plus!</title>
 
     <link href="vendors/bootstrap.min.css" rel="stylesheet">
     <link href="vendors/fontawesome/css/all.min.css" rel="stylesheet">
@@ -48,6 +48,23 @@
               <small>{{! printDuration(currentState.track) }}</small>
             </span>
           </div>
+          <!-- Playback Progress Slider -->
+          <div style="margin-top: 10px; padding: 0 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <small>{{! printTime(currentState.position) }}</small>
+              <input type="range" class="form-range" style="flex: 1;" min="0" ng-max="currentState.track.length || 100" ng-model="currentState.position" ng-change="seekTrack()" ng-disabled="!ready || currentState.length === 0 || !currentState.track.length">
+              <small>{{! printDuration(currentState.track) }}</small>
+            </div>
+          </div>
+          <!-- Volume Control -->
+          <div style="margin-top: 10px; padding: 0 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="fas fa-volume-low"></span>
+              <input type="range" class="form-range" style="flex: 1;" min="0" max="100" ng-model="currentState.volume" ng-change="setVolume()" ng-disabled="!ready">
+              <span class="fas fa-volume-high"></span>
+              <small>{{! currentState.volume }}%</small>
+            </div>
+          </div>
         </div>
       </div>
       <div class="row">
@@ -55,6 +72,18 @@
           <form ng-submit="search()">
             <input type="text" role="search" class="form-control" placeholder="Search..." ng-model="searchField" ng-disabled="!ready">
           </form>
+        </div>
+      </div>
+
+      <!-- Playlist/Album URL Input -->
+      <div class="row" style="margin-top: 10px;">
+        <div class="col-12">
+          <div class="input-group">
+            <input type="text" class="form-control" placeholder="Paste YouTube/Spotify playlist or album URL..." ng-model="playlistUrl" ng-disabled="!ready">
+            <button class="btn btn-primary" type="button" ng-click="addPlaylist()" ng-disabled="!ready || !playlistUrl">
+              <span class="fas fa-plus"></span> Add Playlist
+            </button>
+          </div>
         </div>
       </div>
 

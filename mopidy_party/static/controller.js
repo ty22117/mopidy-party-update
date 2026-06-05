@@ -14,9 +14,12 @@ angular.module('partyApp', [])
     $scope.searching = false;
     $scope.searchingSources = [];
     $scope.ready = false;
+    $scope.playlistUrl = '';
     $scope.currentState = {
       paused: false,
       length: 0,
+      position: 0,
+      volume: 100,
       track: {
         length: 0,
         name: 'Nothing playing, add some songs to get the party going!'
@@ -27,27 +30,27 @@ angular.module('partyApp', [])
     $scope.prioritized_sources = [];
 
     // Get the max tracks to lookup at once from the 'max_results' config value in mopidy.conf
-    $http.get('/party/config?key=max_results').then(function success (response) {
+    $http.get('/party_plus/config?key=max_results').then(function success (response) {
       if (response.status == 200) {
         $scope.maxTracksToLookup = response.data;
       }
     }, null);
 
     // Get the max song length 'max_song_duration' config value in mopidy.conf (minutes)
-    $http.get('/party/config?key=max_song_duration').then(function success (response) {
+    $http.get('/party_plus/config?key=max_song_duration').then(function success (response) {
       if (response.status == 200) {
         $scope.maxSongLengthMS = response.data * 60000;
       }
     }, null);
 
     // Get the source priority list
-    $http.get('/party/config?key=source_prio').then(function success (response) {
+    $http.get('/party_plus/config?key=source_prio').then(function success (response) {
       if (response.status == 200) {
         $scope.sources_priority = [...data.matchAll(/\w+/g)].map(x => x[0]);
       }
     }, null);
     // Get the source blacklist
-    $http.get('/party/config?key=source_blacklist').then(function success (response) {
+    $http.get('/party_plus/config?key=source_blacklist').then(function success (response) {
       if (response.status == 200) {
         $scope.sources_blacklist = [...data.matchAll(/\w+/g)].map(x => x[0]);
       }
@@ -71,6 +74,18 @@ angular.module('partyApp', [])
         })
         .then(function (length) {
           $scope.currentState.length = length;
+          return mopidy.playback.getTimePosition();
+        })
+        .then(function (position) {
+          if (position !== undefined && position !== null) {
+            $scope.currentState.position = position;
+          }
+          return mopidy.mixer.getVolume();
+        })
+        .then(function (volume) {
+          if (volume !== undefined && volume !== null) {
+            $scope.currentState.volume = volume;
+          }
         })
         .done(function () {
           $scope.ready = true;
@@ -97,6 +112,7 @@ angular.module('partyApp', [])
 
     mopidy.on('event:trackPlaybackStarted', function (event) {
       $scope.currentState.track = event.tl_track.track;
+      $scope.currentState.position = 0;
       $scope.$apply();
     });
 
@@ -116,6 +132,17 @@ angular.module('partyApp', [])
       var _sec = _sum % 60;
 
       return '(' + _min + ':' + (_sec < 10 ? '0' + _sec : _sec) + ')';
+    };
+
+    $scope.printTime = function (ms) {
+      if (!ms)
+        return '0:00';
+
+      var _sum = parseInt(ms / 1000);
+      var _min = parseInt(_sum / 60);
+      var _sec = _sum % 60;
+
+      return _min + ':' + (_sec < 10 ? '0' + _sec : _sec);
     };
 
     $scope.search = function () {
@@ -233,7 +260,7 @@ angular.module('partyApp', [])
     $scope.addTrack = function (track) {
       track.disabled = true;
 
-      $http.post('/party/add', track.uri).then(
+      $http.post('/party_plus/add', track.uri).then(
         function success(response) {
           $scope.message = ['success', 'Queued: ' + track.name];
         },
@@ -247,8 +274,44 @@ angular.module('partyApp', [])
       );
     };
 
+    $scope.addPlaylist = function () {
+      if (!$scope.playlistUrl) {
+        $scope.message = ['error', 'Please enter a playlist or album URL'];
+        return;
+      }
+
+      var requestData = {
+        url: $scope.playlistUrl,
+        source: 'auto'
+      };
+
+      $http.post('/party_plus/playlist', JSON.stringify(requestData), {
+        headers: {'Content-Type': 'application/json'}
+      }).then(
+        function success(response) {
+          if (response.data && response.data.success) {
+            $scope.message = ['success', response.data.message];
+            $scope.playlistUrl = ''; // Clear input
+          } else if (response.data && response.data.error) {
+            $scope.message = ['error', response.data.error];
+          } else {
+            $scope.message = ['success', 'Playlist added successfully!'];
+            $scope.playlistUrl = '';
+          }
+        },
+        function error(response) {
+          try {
+            var errorMsg = response.data && response.data.error ? response.data.error : response.data;
+            $scope.message = ['error', 'Error: ' + errorMsg];
+          } catch (e) {
+            $scope.message = ['error', 'Code ' + response.status + ' - Failed to add playlist'];
+          }
+        }
+      );
+    };
+
     $scope.nextTrack = function () {
-      $http.get('/party/vote').then(
+      $http.get('/party_plus/vote').then(
         function success(response) {
           $scope.message = ['success', '' + response.data];
         },
@@ -284,6 +347,27 @@ angular.module('partyApp', [])
       var _fn = $scope.currentState.paused ? mopidy.playback.resume : mopidy.playback.pause;
       _fn().done();
     };
+
+    $scope.seekTrack = function () {
+      mopidy.playback.seek({value: Math.floor($scope.currentState.position)}).done();
+    };
+
+    $scope.setVolume = function () {
+      mopidy.mixer.setVolume({volume: Math.floor($scope.currentState.volume)}).done();
+    };
+
+    // Update playback position every 200ms
+    var positionUpdateInterval = setInterval(function () {
+      if ($scope.ready && !$scope.currentState.paused) {
+        mopidy.playback.getTimePosition().done(function (position) {
+          if (position !== undefined && position !== null) {
+            $scope.$apply(function () {
+              $scope.currentState.position = position;
+            });
+          }
+        });
+      }
+    }, 200);
   });
 
 function getPrioritizedSources (availablesources, sourceprio, blacklist) {
