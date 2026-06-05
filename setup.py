@@ -12,7 +12,7 @@ def get_version(filename):
 setup(
     name="Mopidy-Party-Plus",
     version=get_version("mopidy_party/__init__.py"),
-    url="https://github.com/Lesterpig/mopidy-party-plus",
+    url="https://github.com/ty22117/mopidy-party-plus",
     license="Apache License, Version 2.0",
     author="Loick Bonniot",
     author_email="pip@lesterpig.com",
