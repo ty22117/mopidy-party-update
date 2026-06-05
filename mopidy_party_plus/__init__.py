@@ -138,8 +138,33 @@ class PlaylistHandler(tornado.web.RequestHandler):
 
             # Add all extracted tracks to queue
             added_count = 0
-            for track_uri in tracks:
+            for track_url in tracks:
                 try:
+                    # For YouTube URLs, try to find the proper track URI
+                    if "youtube.com" in track_url or "youtu.be" in track_url:
+                        try:
+                            # Try to look up the URL to get proper track information
+                            search_result = self.core.library.search(
+                                {"any": [track_url]}
+                            ).get()
+                            found_uri = None
+                            for result in search_result:
+                                if result and hasattr(result, "tracks"):
+                                    for track in result.tracks:
+                                        if track and hasattr(track, "uri"):
+                                            found_uri = track.uri
+                                            break
+                                if found_uri:
+                                    break
+
+                            # If search found a track, use it; otherwise try adding the URL directly
+                            track_uri = found_uri or track_url
+                        except Exception as search_e:
+                            print(f"Error searching for {track_url}: {repr(search_e)}")
+                            track_uri = track_url
+                    else:
+                        track_uri = track_url
+
                     pos = 0
                     if self.data["last"]:
                         queue = self.core.tracklist.index(self.data["last"]).get() or 0
@@ -204,15 +229,15 @@ class PlaylistHandler(tornado.web.RequestHandler):
             if "entries" in info:
                 for entry in info["entries"]:
                     if entry:
-                        video_id = entry.get("id") or entry.get("url")
+                        video_id = entry.get("id")
                         if video_id:
-                            # Create a youtube: URI for Mopidy
-                            tracks.append(f"youtube:video/{video_id}")
+                            # Create full YouTube URL for proper Mopidy handling
+                            tracks.append(f"https://www.youtube.com/watch?v={video_id}")
             else:
                 # Single video
                 video_id = info.get("id")
                 if video_id:
-                    tracks.append(f"youtube:video/{video_id}")
+                    tracks.append(f"https://www.youtube.com/watch?v={video_id}")
 
             return tracks
         except Exception as e:

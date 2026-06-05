@@ -52,7 +52,7 @@
           <div style="margin-top: 10px; padding: 0 10px;">
             <div style="display: flex; align-items: center; gap: 10px;">
               <small>{{! printTime(currentState.position) }}</small>
-              <input type="range" class="form-range" style="flex: 1;" min="0" ng-max="currentState.track.length || 100" ng-model="currentState.position" ng-change="seekTrack()" ng-disabled="!ready || currentState.length === 0 || !currentState.track.length">
+              <input type="range" class="form-range" style="flex: 1;" min="0" max="{{! currentState.track.length || 100 }}" ng-model="currentState.position" ng-change="seekTrack()" ng-mousedown="onSliderDown()" ng-mouseup="onSliderUp()" ng-disabled="!ready || currentState.length === 0 || !currentState.track.length">
               <small>{{! printDuration(currentState.track) }}</small>
             </div>
           </div>

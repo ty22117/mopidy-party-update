@@ -28,6 +28,7 @@ angular.module('partyApp', [])
     $scope.sources_blacklist = ['cd', 'file']; // Will be overwritten later by module config
     $scope.sources_priority = ['local'];       // Will be overwritten later by module config
     $scope.prioritized_sources = [];
+    $scope.isSliderDragging = false;
 
     // Get the max tracks to lookup at once from the 'max_results' config value in mopidy.conf
     $http.get('/party_plus/config?key=max_results').then(function success (response) {
@@ -356,9 +357,17 @@ angular.module('partyApp', [])
       mopidy.mixer.setVolume({volume: Math.floor($scope.currentState.volume)}).done();
     };
 
+    $scope.onSliderDown = function () {
+      $scope.isSliderDragging = true;
+    };
+
+    $scope.onSliderUp = function () {
+      $scope.isSliderDragging = false;
+    };
+
     // Update playback position every 200ms
     var positionUpdateInterval = setInterval(function () {
-      if ($scope.ready && !$scope.currentState.paused) {
+      if ($scope.ready && !$scope.currentState.paused && !$scope.isSliderDragging) {
         mopidy.playback.getTimePosition().done(function (position) {
           if (position !== undefined && position !== null) {
             $scope.$apply(function () {

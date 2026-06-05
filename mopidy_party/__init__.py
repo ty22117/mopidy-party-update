@@ -156,7 +156,7 @@ class PlaylistHandler(tornado.web.RequestHandler):
                                             break
                                 if found_uri:
                                     break
-                            
+
                             # If search found a track, use it; otherwise try adding the URL directly
                             track_uri = found_uri or track_url
                         except Exception as search_e:
