@@ -4,6 +4,7 @@ include LICENSE
 include MANIFEST.in
 include README.rst
 include mopidy_party/ext.conf
+include mopidy_party_plus/ext.conf
 
 recursive-include tests *.py
 
@@ -16,3 +17,9 @@ recursive-include mopidy_party *.svg
 recursive-include mopidy_party *.ttf
 recursive-include mopidy_party *.woff
 recursive-include mopidy_party *.woff2
+
+# Include mopidy_party_plus files
+recursive-include mopidy_party_plus *.conf
+recursive-include mopidy_party_plus *.css
+recursive-include mopidy_party_plus *.html
+recursive-include mopidy_party_plus *.js
